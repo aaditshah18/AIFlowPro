@@ -21,9 +21,9 @@ def trigger_dag(cloud_event):
     dag_id = os.getenv('DAG_ID')
     execution_date = None  # Setting this to None so Airflow to uses the current time
 
-    project_id = os.getenv('PROJECT_ID')
-    location = os.getenv('LOCATION')
-    composer_environment = os.getenv('COMPOSER_ENVIRONMENT')
+    project_id = os.getenv('PROJECT_ID').strip()
+    location = os.getenv('LOCATION').strip()
+    composer_environment = os.getenv('COMPOSER_ENVIRONMENT').strip()
     url = f"https://composer.googleapis.com/v1/projects/{project_id}/locations/{location}/environments/{composer_environment}/dagRuns"
 
     # Use default credentials to get an auth token
