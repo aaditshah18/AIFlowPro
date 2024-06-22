@@ -6,7 +6,7 @@ from airflow.models import Variable
 
 def send_email(status):
     sender_email = Variable.get('EMAIL_USER')
-    receiver_email = "your_email@example.com"
+    receiver_email = Variable.get("RECEIVER_EMAIL")
     password = Variable.get('EMAIL_PASSWORD')
 
     if status == "success":

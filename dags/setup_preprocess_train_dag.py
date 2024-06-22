@@ -2,6 +2,7 @@ from airflow import DAG
 from airflow.providers.google.cloud.operators.compute import (
     ComputeEngineStartInstanceOperator,
     ComputeEngineStopInstanceOperator,
+    ComputeEngineInsertInstanceOperator,
 )
 from airflow.operators.python import PythonOperator
 from airflow.providers.ssh.operators.ssh import SSHOperator
@@ -30,18 +31,43 @@ dag = DAG(
 )
 
 PROJECT_ID = Variable.get("gcp_project_id")
-ZONE = Variable.get("gcp_zone")
-INSTANCE_NAME = Variable.get("gce_instance_name")
+ZONE = Variable.get("gcp_zone")  # us-central1-a
+INSTANCE_NAME = Variable.get("GCE_INSTANCE_NAME")
 CODE_BUCKET_NAME = 'your-code-bucket'
 MODEL_BUCKET_NAME = 'your-model-bucket'
 CODE_PATH = 'path/to/code'
 MODEL_PATH = 'path/to/model'
 MODEL_FILE = 'model.pkl'
-MACHINE_TYPE = 'n1-standard-4'
+MACHINE_TYPE = Variable.get('MACHINE_TYPE')  # e2-highmem-4
 SOURCE_IMAGE = 'projects/debian-cloud/global/images/family/debian-10'
 EMAIL = 'your-email@example.com'
 
-# Task to start the VM
+# Task to create a new VM instance
+create_vm_task = ComputeEngineInsertInstanceOperator(
+    task_id='create_vm',
+    project_id=PROJECT_ID,
+    zone=ZONE,
+    body={
+        'name': INSTANCE_NAME,
+        'machineType': f'zones/{ZONE}/machineTypes/{MACHINE_TYPE}',
+        'disks': [
+            {
+                'boot': True,
+                'autoDelete': True,
+                'initializeParams': {'sourceImage': f'projects/{SOURCE_IMAGE}'},
+            }
+        ],
+        'networkInterfaces': [
+            {
+                'network': 'global/networks/default',
+                'accessConfigs': [{'type': 'ONE_TO_ONE_NAT', 'name': 'External NAT'}],
+            }
+        ],
+    },
+    dag=dag,
+)
+
+# Task to start the VM if it already exists
 start_vm_task = ComputeEngineStartInstanceOperator(
     task_id='start_vm',
     project_id=PROJECT_ID,
