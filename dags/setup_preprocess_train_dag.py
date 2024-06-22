@@ -11,7 +11,6 @@ from airflow.providers.google.cloud.transfers.local_to_gcs import (
 )
 from airflow.providers.google.cloud.sensors.gcs import GCSObjectExistenceSensor
 from airflow.operators.trigger_dagrun import TriggerDagRunOperator
-from airflow.operators.email import EmailOperator
 from airflow.utils.dates import days_ago
 from airflow.models import Variable
 
@@ -134,14 +133,6 @@ send_failure_email = PythonOperator(
     python_callable=send_email,
     op_args=['failure'],
     trigger_rule='one_failed',  # Send email if any of the previous tasks failed
-    dag=dag,
-)
-
-send_email_failure_notification = EmailOperator(
-    task_id='send_email_failure_notification',
-    to=EMAIL,
-    subject='Model Upload Failure',
-    html_content='The model file upload to GCS has failed.',
     dag=dag,
 )
 
