@@ -4,13 +4,17 @@ import logging
 from airflow.models import Variable
 
 
-def send_email():
+def send_email(status):
     sender_email = Variable.get('EMAIL_USER')
     receiver_email = "your_email@example.com"
     password = Variable.get('EMAIL_PASSWORD')
 
-    subject = "Sample email from Airflow"
-    body = "Hello, this is a test email from Python."
+    if status == "success":
+        subject = "Airflow DAG Succeeded"
+        body = "Hello, your DAG has completed successfully."
+    else:
+        subject = "Airflow DAG Failed"
+        body = "Hello, your DAG has failed. Please check the logs for more details."
 
     # Create the email headers and content
     email_message = MIMEText(body)

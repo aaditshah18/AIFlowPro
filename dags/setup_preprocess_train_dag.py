@@ -3,6 +3,7 @@ from airflow.providers.google.cloud.operators.compute import (
     ComputeEngineStartInstanceOperator,
     ComputeEngineStopInstanceOperator,
 )
+from airflow.operators.python import PythonOperator
 from airflow.providers.ssh.operators.ssh import SSHOperator
 from airflow.providers.google.cloud.transfers.local_to_gcs import (
     LocalFilesystemToGCSOperator,
@@ -12,6 +13,8 @@ from airflow.operators.trigger_dagrun import TriggerDagRunOperator
 from airflow.operators.email import EmailOperator
 from airflow.utils.dates import days_ago
 from airflow.models import Variable
+
+from dags.tasks import send_email
 
 default_args = {
     'owner': 'airflow',
@@ -90,13 +93,21 @@ check_model_upload = GCSObjectExistenceSensor(
     dag=dag,
 )
 
-# Task to send email notification
-send_email_notification = EmailOperator(
-    task_id='send_email_notification',
-    to=EMAIL,
-    subject='Model Upload Status',
-    html_content='The model file has been successfully uploaded to GCS.',
+# Task to send success email notification
+send_success_email = PythonOperator(
+    task_id='send_success_email',
+    python_callable=send_email,
+    op_args=['success'],
     trigger_rule='all_success',  # Only send email if the previous tasks were successful
+    dag=dag,
+)
+
+# Task to send failure email notification
+send_failure_email = PythonOperator(
+    task_id='send_failure_email',
+    python_callable=send_email,
+    op_args=['failure'],
+    trigger_rule='one_failed',  # Send email if any of the previous tasks failed
     dag=dag,
 )
 
@@ -105,7 +116,6 @@ send_email_failure_notification = EmailOperator(
     to=EMAIL,
     subject='Model Upload Failure',
     html_content='The model file upload to GCS has failed.',
-    trigger_rule='all_failed',  # Send email if any of the previous tasks failed
     dag=dag,
 )
 
@@ -133,10 +143,6 @@ stop_vm_task = ComputeEngineStopInstanceOperator(
     >> train_task
     >> upload_model_to_gcs_task
 )
-(
-    upload_model_to_gcs_task
-    >> check_model_upload
-    >> [send_email_notification, send_email_failure_notification]
-    >> trigger_next_dag
-)
+upload_model_to_gcs_task >> check_model_upload >> [send_success_email, trigger_next_dag]
 check_model_upload >> stop_vm_task
+check_model_upload >> send_failure_email
