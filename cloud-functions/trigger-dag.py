@@ -30,7 +30,7 @@ def trigger_dag(cloud_event):
     logger.info(f"File {file_name} uploaded to {bucket_name} bucket.")
 
     # Set up parameters for triggering the Airflow DAG
-    dag_id = 'train_model_on_vm_and_deploy'
+    dag_id = os.getenv('DAG_ID')
     execution_date = (
         None  # Set this to None if you want Airflow to use the current time
     )
