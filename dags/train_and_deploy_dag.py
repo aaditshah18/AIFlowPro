@@ -1,6 +1,11 @@
 from airflow import DAG
-from airflow.providers.google.cloud.operators.vertex_ai.model_service import UploadModelOperator
-from airflow.providers.google.cloud.operators.vertex_ai.endpoint_service import CreateEndpointOperator, DeployModelOperator
+from airflow.providers.google.cloud.operators.vertex_ai.model_service import (
+    UploadModelOperator,
+)
+from airflow.providers.google.cloud.operators.vertex_ai.endpoint_service import (
+    CreateEndpointOperator,
+    DeployModelOperator,
+)
 
 from airflow.utils.dates import days_ago
 from airflow.models import Variable
@@ -44,9 +49,7 @@ create_endpoint = CreateEndpointOperator(
     task_id="create_endpoint",
     project_id=PROJECT_ID,
     region=REGION,
-    endpoint={
-        "display_name": "airline_endpoint"
-    },
+    endpoint={"display_name": "airline_endpoint"},
     dag=dag,
 )
 
@@ -59,12 +62,10 @@ deploy_model = DeployModelOperator(
     deployed_model={
         "display_name": "airline_model_deployed",
         "dedicated_resources": {
-            "machine_spec": {
-                "machine_type": "n1-standard-4"
-            },
+            "machine_spec": {"machine_type": "n1-standard-4"},
             "min_replica_count": 1,
-            "max_replica_count": 1
-        }
+            "max_replica_count": 1,
+        },
     },
     dag=dag,
 )
