@@ -16,32 +16,18 @@ logger = logging.getLogger(__name__)
 
 @functions_framework.cloud_event
 def trigger_dag(cloud_event):
-    # Decode the Pub/Sub message
-    pubsub_message = base64.b64decode(cloud_event.data["message"]["data"]).decode(
-        'utf-8'
-    )
-    message_data = json.loads(pubsub_message)
-
-    # Extract information from the Pub/Sub message
-    bucket_name = message_data['bucket']
-    file_name = message_data['name']
-
-    # Optional: Use these details to check if the uploaded file meets certain criteria
-    logger.info(f"File {file_name} uploaded to {bucket_name} bucket.")
-
     # Set up parameters for triggering the Airflow DAG
-    dag_id = 'train_model_on_vm_and_deploy'
-    execution_date = (
-        None  # Set this to None if you want Airflow to use the current time
-    )
+    logger.info("Process started with cloud event")
+    dag_id = os.getenv('DAG_ID')
+    execution_date = None  # Setting this to None so Airflow to uses the current time
 
-    project_id = os.getenv('PROJECT_ID')
-    location = os.getenv('LOCATION')
-    composer_environment = os.getenv('COMPOSER_ENVIRONMENT')
+    project_id = os.getenv('PROJECT_ID').strip()
+    location = os.getenv('LOCATION').strip()
+    composer_environment = os.getenv('COMPOSER_ENVIRONMENT').strip()
     url = f"https://composer.googleapis.com/v1/projects/{project_id}/locations/{location}/environments/{composer_environment}/dagRuns"
 
     # Use default credentials to get an auth token
-    credentials, project = google.auth.default()
+    credentials, _ = google.auth.default()
     auth_request = Request()
     credentials.refresh(auth_request)
     auth_token = id_token.fetch_id_token(auth_request, url)
