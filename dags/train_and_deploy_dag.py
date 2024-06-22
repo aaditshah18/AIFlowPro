@@ -1,9 +1,7 @@
 from airflow import DAG
-from airflow.providers.google.cloud.operators.vertex_ai import (
-    UploadModelOperator,
-    CreateEndpointOperator,
-    DeployModelOperator,
-)
+from airflow.providers.google.cloud.operators.vertex_ai.model_service import UploadModelOperator
+from airflow.providers.google.cloud.operators.vertex_ai.endpoint_service import CreateEndpointOperator, DeployModelOperator
+
 from airflow.utils.dates import days_ago
 from airflow.models import Variable
 
@@ -22,36 +20,52 @@ dag = DAG(
 
 PROJECT_ID = Variable.get("gcp_project_id")
 ZONE = Variable.get("gcp_zone")
-MODEL_BUCKET_NAME = 'your-model-bucket'
-MODEL_PATH = 'path/to/model'
-MODEL_FILE = 'model.pkl'
+REGION = Variable.get("gcp_region")
+MODEL_BUCKET_NAME = Variable.get("MODEL_BUCKET_NAME")
+MODEL_PATH = Variable.get("MODEL_PATH")
+MODEL_FILE = Variable.get("MODEL_FILE")
 
 # Vertex AI tasks for model deployment
 upload_model = UploadModelOperator(
     task_id="upload_model",
-    model_display_name="airline_model",
     project_id=PROJECT_ID,
-    location=ZONE,
-    artifact_uri=f"gs://{MODEL_BUCKET_NAME}/{MODEL_PATH}/{MODEL_FILE}",
-    serving_container_image_uri="gcr.io/deeplearning-platform-release/tf2-cpu.2-3:latest",
+    region=REGION,
+    model={
+        "display_name": "airline_model",
+        "artifact_uri": f"gs://{MODEL_BUCKET_NAME}/{MODEL_PATH}/{MODEL_FILE}",
+        "container_spec": {
+            "image_uri": "gcr.io/deeplearning-platform-release/tf2-cpu.2-3:latest"
+        },
+    },
     dag=dag,
 )
 
 create_endpoint = CreateEndpointOperator(
     task_id="create_endpoint",
-    endpoint_display_name="airline_endpoint",
     project_id=PROJECT_ID,
-    location=ZONE,
+    region=REGION,
+    endpoint={
+        "display_name": "airline_endpoint"
+    },
     dag=dag,
 )
 
 deploy_model = DeployModelOperator(
     task_id="deploy_model",
-    model_id="{{ task_instance.xcom_pull(task_ids='upload_model')['model'] }}",
-    endpoint_id="{{ task_instance.xcom_pull(task_ids='create_endpoint')['endpoint'] }}",
     project_id=PROJECT_ID,
-    location=ZONE,
-    deployed_model_display_name="airline_model_deployed",
+    region=REGION,
+    traffic_split={"0": 100},  # Route 100% of traffic to the new model
+    endpoint_id=create_endpoint.output["endpoint_id"],
+    deployed_model={
+        "display_name": "airline_model_deployed",
+        "dedicated_resources": {
+            "machine_spec": {
+                "machine_type": "n1-standard-4"
+            },
+            "min_replica_count": 1,
+            "max_replica_count": 1
+        }
+    },
     dag=dag,
 )
 
