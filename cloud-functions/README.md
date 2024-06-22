@@ -12,6 +12,8 @@
    - Enter a name for your function (e.g., `trigger_dag`).
    - Select the **region** where you want to deploy your function.
    - Choose the **runtime** (e.g., Python 3.9).
+   - Setup a timeout of more than 5 mins
+   - Configure the ENV variables - PROJECT_ID, COMPOSER_ENVIRONMENT, LOCATION, DAG_ID
 
 4. **Set Up the Trigger:**
    - In the **Trigger** section, select **Cloud Pub/Sub**.
