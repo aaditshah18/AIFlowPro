@@ -28,9 +28,11 @@ jobs:
         curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key --keyring /usr/share/keyrings/cloud.google.gpg add -
         sudo apt-get update && sudo apt-get install -y google-cloud-sdk
 
-    - name: Authenticate GCP
+    - name: Authenticate to GCP
+      env:
+        GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
       run: |
-        echo "${{ secrets.GCP_SA_KEY }}" > "${HOME}/gcp-key.json"
+        echo "$GCP_SA_KEY" > "${HOME}/gcp-key.json"
         gcloud auth activate-service-account --key-file="${HOME}/gcp-key.json"
         gcloud config set project your-project-id
 
