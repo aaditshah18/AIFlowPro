@@ -93,7 +93,7 @@ jobs:
           ECR_REGISTRY: ${{ steps.login-aws-ecr.outputs.registry }}
         run: |
             export GCR_REPOSITORY=${{ env.GAR_LOCATION }}/fast-api-app
-            export IMAGE_TAG=dev_${{ env.SHORT_SHA }}
+            export IMAGE_TAG=${{ env.IMAGE_TAG }}_${{ env.SHORT_SHA }}
             export KUBECONFIG=kubeconfig.yaml
             envsubst < kubernetes/kustomization.tmpl.yaml > kubernetes/kustomization.yaml
 
