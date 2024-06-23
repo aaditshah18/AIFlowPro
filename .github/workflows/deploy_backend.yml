@@ -1,101 +1,70 @@
-name: Deploy to K8s 🚀
+name: Build and Push Docker Image to GCR
 
 on:
   push:
     branches:
       - main
-
-env:
-  SHORT_SHA: $(echo ${{ github.sha }} | cut -c 1-8)
-  IMAGE_TAG: prod
-  PROJECT_ID: mlops-final-lab
-  REGION: us-east4
-  GAR_LOCATION: us-east4-docker.pkg.dev/mlops-final-lab/backend-fastapi-app
+      - feature/google_batch
 
 jobs:
-
-  gcr-build:
-
-    name: Build & Push to  GCR
+  build-and-push:
+    name: Build & Push to GCR
     runs-on: ubuntu-latest
 
     steps:
-
       - name: Check out code
         uses: actions/checkout@v2
 
-      - id: "auth"
-        uses: "google-github-actions/auth@v1"
+      - id: auth
+        uses: google-github-actions/auth@v1
         with:
-          credentials_json: "${{ secrets.GCP_SA_KEY }}"
+          credentials_json: '${{ secrets.GCP_SA_KEY }}'
 
-      - name: "Set up Cloud SDK"
-        uses: "google-github-actions/setup-gcloud@v1"
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v1
 
-      - name: "Use gcloud CLI"
-        run: "gcloud info"
+      - name: Use gcloud CLI
+        run: gcloud info
 
-      - name: "Docker auth"
-        run: |-
-          gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+      - name: Docker auth
+        run: gcloud auth configure-docker --quiet
 
       - name: Build and tag
         run: |
-          cd backend
           docker buildx create --use
           docker buildx build \
-          --tag ${{ env.GAR_LOCATION }}/fast-api-app:${{ env.IMAGE_TAG }} \
-          --tag ${{ env.GAR_LOCATION }}/fast-api-app:${{ env.IMAGE_TAG }}_${{ env.SHORT_SHA }} \
-          . --load
+            --tag gcr.io/${{ secrets.PROJECT_ID }}/docker-image-mlops:${{ github.sha }} \
+            --tag gcr.io/${{ secrets.PROJECT_ID }}/docker-image-mlops:latest \
+            . --load
 
-      - name: Push image to ECR
+      - name: Push image to GCR
         run: |
-          docker push ${{ env.GAR_LOCATION }}/fast-api-app:${{ env.IMAGE_TAG }}
-          docker push ${{ env.GAR_LOCATION }}/fast-api-app:${{ env.IMAGE_TAG }}_${{ env.SHORT_SHA }}
+          docker push gcr.io/${{ secrets.PROJECT_ID }}/docker-image-mlops:${{ github.sha }}
+          docker push gcr.io/${{ secrets.PROJECT_ID }}/docker-image-mlops:latest
 
-  deploy:
-    needs: [gcr-build]
-    name: Deployment in GKE
+  trigger-batch:
+    needs: [build-and-push]
+    name: Trigger Google Cloud Batch Job
     runs-on: ubuntu-latest
 
     steps:
       - name: Check out code
         uses: actions/checkout@v2
 
-      - id: "auth"
-        uses: "google-github-actions/auth@v1"
+      - id: auth
+        uses: google-github-actions/auth@v1
         with:
-          credentials_json: "${{ secrets.GCP_SA_KEY }}"
+          credentials_json: '${{ secrets.GCP_SA_KEY }}'
 
-      - name: "Set up Cloud SDK"
-        uses: "google-github-actions/setup-gcloud@v1"
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v1
 
-      - name: "Use gcloud CLI"
-        run: "gcloud info"
+      - name: Use gcloud CLI
+        run: gcloud info
 
-      - name: Install GKE Auth
+      - name: Trigger Batch Job
         run: |
-          export USE_GKE_GCLOUD_AUTH_PLUGIN=True
-          gcloud components install gke-gcloud-auth-plugin
-
-      # - name: Setup Kubectl
-      #   uses: azure/setup-kubectl@v3
-      #   with:
-      #     version: 'v1.28.4'
-      #   id: install
-
-      - name: Update kube config
-        run: gcloud container clusters get-credentials mlops-final-project --zone us-east4-a --project mlops-final-lab
-
-      - name: Configure Enviornment
-        env:
-          ECR_REGISTRY: ${{ steps.login-aws-ecr.outputs.registry }}
-        run: |
-            export GCR_REPOSITORY=${{ env.GAR_LOCATION }}/fast-api-app
-            export IMAGE_TAG=${{ env.IMAGE_TAG }}_${{ env.SHORT_SHA }}
-            export KUBECONFIG=kubeconfig.yaml
-            envsubst < kubernetes/kustomization.tmpl.yaml > kubernetes/kustomization.yaml
-
-      - name: Deploy EKS Values
-        run: |
-          kubectl kustomize kubernetes | kubectl apply -f -
+          gcloud batch jobs submit job-name \
+            --location=us-central1 \
+            --service-account=SERVICE_ACCOUNT_EMAIL \
+            --command="docker run -v $(pwd):/app gcr.io/${{ secrets.PROJECT_ID }}/docker-image-mlops:latest"
