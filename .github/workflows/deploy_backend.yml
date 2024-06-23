@@ -37,7 +37,7 @@ jobs:
 
       - name: "Docker auth"
         run: |-
-          gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev
+          gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
 
       - name: Build and tag
         run: |
@@ -45,11 +45,11 @@ jobs:
           docker buildx create --use
           docker buildx build \
           --platform linux/arm64 \
-          --tag ${{ env.GAR_LOCATION }}:${{ env.IMAGE_TAG }} \
-          --tag ${{ env.GAR_LOCATION }}:${{ env.IMAGE_TAG }}_${{ env.SHORT_SHA }} \
+          --tag ${{ env.GAR_LOCATION }}/fast-api-app:${{ env.IMAGE_TAG }} \
+          --tag ${{ env.GAR_LOCATION }}/fast-api-app:${{ env.IMAGE_TAG }}_${{ env.SHORT_SHA }} \
           . --load
 
       - name: Push image to ECR
         run: |
-          docker push ${{ env.GAR_LOCATION }}:${{ env.IMAGE_TAG }}
-          docker push ${{ env.GAR_LOCATION }}:${{ env.IMAGE_TAG }}_${{ env.SHORT_SHA }}
+          docker push ${{ env.GAR_LOCATION }}/fast-api-app:${{ env.IMAGE_TAG }}
+          docker push ${{ env.GAR_LOCATION }}/fast-api-app:${{ env.IMAGE_TAG }}_${{ env.SHORT_SHA }}
