@@ -13,8 +13,13 @@ from airflow.providers.google.cloud.sensors.gcs import GCSObjectExistenceSensor
 from airflow.operators.trigger_dagrun import TriggerDagRunOperator
 from airflow.utils.dates import days_ago
 from airflow.models import Variable
-
-from dags.tasks import send_email
+from dags.tasks import (
+    download_code_from_gcs,
+    preprocess_data,
+    send_email,
+    train_model,
+)
+from airflow import settings
 
 default_args = {
     'owner': 'airflow',
@@ -41,37 +46,29 @@ MACHINE_TYPE = Variable.get('MACHINE_TYPE')  # e2-highmem-4
 SOURCE_IMAGE = 'projects/debian-cloud/global/images/family/debian-10'
 EMAIL = 'your-email@example.com'
 
-# Task to create a new VM instance
-create_vm_task = ComputeEngineInsertInstanceOperator(
-    task_id='create_vm',
-    project_id=PROJECT_ID,
-    zone=ZONE,
-    body={
-        'name': INSTANCE_NAME,
-        'machineType': f'zones/{ZONE}/machineTypes/{MACHINE_TYPE}',
-        'disks': [
-            {
-                'boot': True,
-                'autoDelete': True,
-                'initializeParams': {'sourceImage': f'projects/{SOURCE_IMAGE}'},
-            }
-        ],
-        'networkInterfaces': [
-            {
-                'network': 'global/networks/default',
-                'accessConfigs': [{'type': 'ONE_TO_ONE_NAT', 'name': 'External NAT'}],
-            }
-        ],
-    },
-    dag=dag,
-)
+# # Task to create a new VM instance
+# create_vm_task = ComputeEngineInsertInstanceOperator(
+#     task_id='create_vm',
+#     project_id=PROJECT_ID,
+#     zone=ZONE,
+#     body=GCE_INSTANCE_BODY,
+#     dag=dag,
+# )
 
-# Task to start the VM if it already exists
-start_vm_task = ComputeEngineStartInstanceOperator(
-    task_id='start_vm',
-    project_id=PROJECT_ID,
-    zone=ZONE,
-    resource_id=INSTANCE_NAME,
+# # Task to start the VM if it already exists
+# start_vm_task = ComputeEngineStartInstanceOperator(
+#     task_id='start_vm',
+#     project_id=PROJECT_ID,
+#     zone=ZONE,
+#     resource_id=INSTANCE_NAME,
+#     dag=dag,
+# )
+
+# Task to get the username of the current user in the VM
+get_username_task = BashOperator(
+    task_id='get_username',
+    bash_command='whoami',
+    do_xcom_push=True,
     dag=dag,
 )
 
@@ -144,22 +141,39 @@ trigger_next_dag = TriggerDagRunOperator(
 )
 
 # Task to stop the VM after the work is done
-stop_vm_task = ComputeEngineStopInstanceOperator(
-    task_id='stop_vm',
-    project_id=PROJECT_ID,
-    zone=ZONE,
-    resource_id=INSTANCE_NAME,
-    dag=dag,
-)
+# stop_vm_task = ComputeEngineStopInstanceOperator(
+#     task_id='stop_vm',
+#     project_id=PROJECT_ID,
+#     zone=ZONE,
+#     resource_id=INSTANCE_NAME,
+#     dag=dag,
+# )
 
-# Define the task dependencies
+# # Task to delete the VM if send_failure_email succeeds
+# delete_vm_task = ComputeEngineDeleteInstanceOperator(
+#     task_id='delete_vm',
+#     project_id=PROJECT_ID,
+#     zone=ZONE,
+#     resource_id=INSTANCE_NAME,
+#     trigger_rule='all_success',  # Ensure this task runs only if send_failure_email succeeds
+#     dag=dag,
+# )
+
+# Define task dependencies
 (
-    start_vm_task
+    # create_vm_task
+    # >> start_vm_task
+    get_username_task
+    # >> get_external_ip_task
+    # >> generate_ssh_key_task
+    # >> create_ssh_connection_task
     >> download_code_task
     >> preprocess_task
     >> train_task
     >> upload_model_to_gcs_task
 )
 upload_model_to_gcs_task >> check_model_upload >> [send_success_email, trigger_next_dag]
-check_model_upload >> stop_vm_task
+check_model_upload 
 check_model_upload >> send_failure_email
+
+# create_vm_task >> start_vm_task
