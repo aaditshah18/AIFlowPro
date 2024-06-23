@@ -23,9 +23,9 @@ dag = DAG(
     schedule_interval=None,  # Triggered by the first DAG
 )
 
-PROJECT_ID = Variable.get("gcp_project_id")
-ZONE = Variable.get("gcp_zone")
-REGION = Variable.get("gcp_region")
+PROJECT_ID = Variable.get("PROJECT_ID")
+ZONE = Variable.get("ZONE")
+REGION = Variable.get("REGION")
 MODEL_BUCKET_NAME = Variable.get("MODEL_BUCKET_NAME")
 MODEL_PATH = Variable.get("MODEL_PATH")
 MODEL_FILE = Variable.get("MODEL_FILE")
