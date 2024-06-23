@@ -1,84 +1,134 @@
-#!/usr/bin/env python
-# coding: utf-8
-
 import pandas as pd
 import numpy as np
-import datetime, warnings
+import warnings
+import logging
+import calendar
+
 warnings.filterwarnings("ignore")
 
-# Data Loading
-df1 = pd.read_csv('data.csv')
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s'
+)
 
-# Renaming Airlines
-df1['OP_CARRIER'].replace({
-    'UA':'United Airlines',
-    'AS':'Alaska Airlines',
-    '9E':'Endeavor Air',
-    'B6':'JetBlue Airways',
-    'EV':'ExpressJet',
-    'F9':'Frontier Airlines',
-    'G4':'Allegiant Air',
-    'HA':'Hawaiian Airlines',
-    'MQ':'Envoy Air',
-    'NK':'Spirit Airlines',
-    'OH':'PSA Airlines',
-    'OO':'SkyWest Airlines',
-    'VX':'Virgin America',
-    'WN':'Southwest Airlines',
-    'YV':'Mesa Airline',
-    'YX':'Republic Airways',
-    'AA':'American Airlines',
-    'DL':'Delta Airlines'
-}, inplace=True)
 
-# Dropping Columns
-df1 = df1.drop(["Unnamed: 27"], axis=1)
+def main():
+    try:
+        # Data Loading
+        logging.info("Loading data from GCS")
+        df1 = pd.read_csv('gs://us-central1-mlops-composer-c43be234-bucket/data/2015.csv')
+        df2 = pd.read_csv('gs://us-central1-mlops-composer-c43be234-bucket/data/2016.csv')
+        logging.info("Data loaded successfully")
 
-# Handling Cancelled Flights
-df1 = df1[(df1['CANCELLED'] == 0)]
-df1 = df1.drop(['CANCELLED'], axis=1)
+        # Combine the datasets
+        df = pd.concat([df1, df2], ignore_index=True)
+        logging.info("Data combined successfully")
 
-# Handling Cancellation Codes
-df1 = df1.drop(["CANCELLATION_CODE"], axis=1)
+        # Renaming Airlines
+        logging.info("Renaming airlines")
+        df['OP_CARRIER'].replace(
+            {
+                'UA': 'United Airlines',
+                'AS': 'Alaska Airlines',
+                '9E': 'Endeavor Air',
+                'B6': 'JetBlue Airways',
+                'EV': 'ExpressJet',
+                'F9': 'Frontier Airlines',
+                'G4': 'Allegiant Air',
+                'HA': 'Hawaiian Airlines',
+                'MQ': 'Envoy Air',
+                'NK': 'Spirit Airlines',
+                'OH': 'PSA Airlines',
+                'OO': 'SkyWest Airlines',
+                'VX': 'Virgin America',
+                'WN': 'Southwest Airlines',
+                'YV': 'Mesa Airline',
+                'YX': 'Republic Airways',
+                'AA': 'American Airlines',
+                'DL': 'Delta Airlines',
+            },
+            inplace=True,
+        )
 
-# Dropping DIVERTED column
-df1 = df1.drop(['DIVERTED'], axis=1)
+        # Dropping Columns
+        logging.info("Dropping unnecessary columns")
+        df = df.drop(["Unnamed: 27"], axis=1)
 
-# Dropping Delay Reason Columns
-df1 = df1.drop(['CARRIER_DELAY', 'WEATHER_DELAY', 'NAS_DELAY', 'SECURITY_DELAY', 'LATE_AIRCRAFT_DELAY'], axis=1)
+        # Handling Cancelled Flights
+        logging.info("Handling cancelled flights")
+        df = df[df['CANCELLED'] == 0]
+        df = df.drop(['CANCELLED'], axis=1)
 
-# Dropping Flight Number
-df1 = df1.drop(['OP_CARRIER_FL_NUM'], axis=1)
+        # Handling Cancellation Codes
+        logging.info("Dropping cancellation codes")
+        df = df.drop(["CANCELLATION_CODE"], axis=1)
 
-# Dropping Time Columns
-df1.drop(columns=['DEP_TIME', 'ARR_TIME'], inplace=True)
+        # Dropping DIVERTED column
+        logging.info("Dropping diverted column")
+        df = df.drop(['DIVERTED'], axis=1)
 
-# Handling Missing Values
-df1["DEP_DELAY"] = df1["DEP_DELAY"].fillna(0)
-df1['TAXI_IN'].fillna((df1['TAXI_IN'].mean()), inplace=True)
-df1 = df1.dropna()
+        # Dropping Delay Reason Columns
+        logging.info("Dropping delay reason columns")
+        df = df.drop(
+            [
+                'CARRIER_DELAY',
+                'WEATHER_DELAY',
+                'NAS_DELAY',
+                'SECURITY_DELAY',
+                'LATE_AIRCRAFT_DELAY',
+            ],
+            axis=1,
+        )
 
-# Binning Time Columns
-time_columns = ['CRS_DEP_TIME', 'WHEELS_OFF', 'WHEELS_ON', 'CRS_ARR_TIME']
-for col in time_columns:
-    df1[col] = np.ceil(df1[col] / 600).astype(int)
+        # Dropping Flight Number
+        logging.info("Dropping flight number")
+        df = df.drop(['OP_CARRIER_FL_NUM'], axis=1)
 
-# Extracting Date Information
-df1['DAY'] = pd.DatetimeIndex(df1['FL_DATE']).day
-df1['MONTH'] = pd.DatetimeIndex(df1['FL_DATE']).month
+        # Dropping Time Columns
+        logging.info("Dropping time columns")
+        df.drop(columns=['DEP_TIME', 'ARR_TIME'], inplace=True)
 
-import calendar
-df1['MONTH_AB'] = df1['MONTH'].apply(lambda x: calendar.month_abbr[x])
+        # Handling Missing Values
+        logging.info("Handling missing values")
+        df["DEP_DELAY"] = df["DEP_DELAY"].fillna(0)
+        df['TAXI_IN'].fillna((df['TAXI_IN'].mean()), inplace=True)
+        df = df.dropna()
 
-# Binary Classification
-df1['FLIGHT_STATUS'] = df1['ARR_DELAY'].apply(lambda x: 0 if x < 0 else 1)
+        # Binning Time Columns
+        logging.info("Binning time columns")
+        time_columns = ['CRS_DEP_TIME', 'WHEELS_OFF', 'WHEELS_ON', 'CRS_ARR_TIME']
+        for col in time_columns:
+            df[col] = np.ceil(df[col] / 600).astype(int)
 
-# Convert FL_DATE to datetime and extract weekday
-df1['FL_DATE'] = pd.to_datetime(df1['FL_DATE'])
-df1['WEEKDAY'] = df1['FL_DATE'].dt.dayofweek
+        # Extracting Date Information
+        logging.info("Extracting date information")
+        df['DAY'] = pd.DatetimeIndex(df['FL_DATE']).day
+        df['MONTH'] = pd.DatetimeIndex(df['FL_DATE']).month
 
-# Drop unnecessary columns
-df1 = df1.drop(columns=['FL_DATE', 'MONTH_AB', 'ARR_DELAY'])
+        df['MONTH_AB'] = df['MONTH'].apply(lambda x: calendar.month_abbr[x])
 
-# Saving the Cleaned Data
-df1.to_csv('cleaned.csv', index=False)
+        # Binary Classification
+        logging.info("Applying binary classification")
+        df['FLIGHT_STATUS'] = df['ARR_DELAY'].apply(lambda x: 0 if x < 0 else 1)
+
+        # Convert FL_DATE to datetime and extract weekday
+        logging.info("Converting FL_DATE to datetime and extracting weekday")
+        df['FL_DATE'] = pd.to_datetime(df['FL_DATE'])
+        df['WEEKDAY'] = df['FL_DATE'].dt.dayofweek
+
+        # Drop unnecessary columns
+        logging.info("Dropping unnecessary columns")
+        df = df.drop(columns=['FL_DATE', 'MONTH_AB', 'ARR_DELAY'])
+
+        # Saving the Cleaned Data
+        logging.info("Saving cleaned data to cleaned.csv")
+        df.to_csv('cleaned.csv', index=False)
+        logging.info("Cleaned data saved successfully")
+
+    except Exception as e:
+        logging.error(f"Error occurred: {e}", exc_info=True)
+        raise
+
+
+if __name__ == "__main__":
+    main()
