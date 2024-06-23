@@ -44,7 +44,6 @@ jobs:
           cd backend
           docker buildx create --use
           docker buildx build \
-          --platform linux/arm64 \
           --tag ${{ env.GAR_LOCATION }}/fast-api-app:${{ env.IMAGE_TAG }} \
           --tag ${{ env.GAR_LOCATION }}/fast-api-app:${{ env.IMAGE_TAG }}_${{ env.SHORT_SHA }} \
           . --load
