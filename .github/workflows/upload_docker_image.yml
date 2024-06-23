@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - main
-      - feature/dag_update
+      - feature/google_batch
 
 jobs:
   build:
