@@ -13,7 +13,7 @@ router = APIRouter(
 def get_flight_delays(request: FlightData):
 
     delayed = random.choice([True, False])
-    return {
-        "success": True,
-        "delayed": delayed
-    }
+    return DelayedResponse(
+        success=True,
+        delayed=delayed
+    )
