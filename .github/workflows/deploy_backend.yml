@@ -1,0 +1,55 @@
+name: Deploy to K8s 🚀
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  SHORT_SHA: $(echo ${{ github.sha }} | cut -c 1-8)
+  IMAGE_TAG: prod
+  PROJECT_ID: mlops-final-lab
+  REGION: us-east4
+  GAR_LOCATION: us-east4-docker.pkg.dev/mlops-final-lab/backend-fastapi-app
+
+jobs:
+
+  ecr-build:
+
+    name: Build & Push to  GCR
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      - id: "auth"
+        uses: "google-github-actions/auth@v1"
+        with:
+          credentials_json: "${{ secrets.GCP_SA_KEY }}"
+
+      - name: "Set up Cloud SDK"
+        uses: "google-github-actions/setup-gcloud@v1"
+
+      - name: "Use gcloud CLI"
+        run: "gcloud info"
+
+      - name: "Docker auth"
+        run: |-
+          gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev
+
+      - name: Build and tag
+        run: |
+          cd backend
+          docker buildx create --use
+          docker buildx build \
+          --platform linux/arm64 \
+          --tag ${{ env.GAR_LOCATION }}:${{ env.IMAGE_TAG }} \
+          --tag ${{ env.GAR_LOCATION }}:${{ env.IMAGE_TAG }}_${{ env.SHORT_SHA }} \
+          . --load
+
+      - name: Push image to ECR
+        run: |
+          docker push ${{ env.GAR_LOCATION }}:${{ env.IMAGE_TAG }}
+          docker push ${{ env.GAR_LOCATION }}:${{ env.IMAGE_TAG }}_${{ env.SHORT_SHA }}
