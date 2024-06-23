@@ -8,7 +8,7 @@ router = APIRouter(
         tags=['Flight prediction']
     )
 
-@router.post("/flight-prediction", status_code=status.HTTP_200_OK, response_model=DelayedResponse)
+@router.post("/prediction", status_code=status.HTTP_200_OK, response_model=DelayedResponse)
 def get_flight_delays(request: FlightData):
 
     return DelayedResponse(
