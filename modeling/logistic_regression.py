@@ -9,8 +9,10 @@ from sklearn.model_selection import train_test_split, GridSearchCV, cross_val_sc
 from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
 from sklearn.linear_model import LogisticRegression
 import warnings
+
 warnings.filterwarnings("ignore")
 import pickle
+
 # Data Loading
 df = pd.read_csv('cleaned.csv')
 
@@ -33,14 +35,17 @@ categorical_transformer = OneHotEncoder(handle_unknown='ignore')
 preprocessor = ColumnTransformer(
     transformers=[
         ('num', numerical_transformer, numerical_cols),
-        ('cat', categorical_transformer, categorical_cols)
-    ])
+        ('cat', categorical_transformer, categorical_cols),
+    ]
+)
 
 # Apply the transformations to the features
 X_preprocessed = preprocessor.fit_transform(X)
 
 # Split the dataset
-X_train, X_test, y_train, y_test = train_test_split(X_preprocessed, y, test_size=0.25, random_state=42)
+X_train, X_test, y_train, y_test = train_test_split(
+    X_preprocessed, y, test_size=0.25, random_state=42
+)
 
 # Train the Logistic Regression model
 clf = LogisticRegression(max_iter=1000, n_jobs=-1, random_state=42)

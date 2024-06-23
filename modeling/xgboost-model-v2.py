@@ -35,14 +35,17 @@ categorical_transformer = OneHotEncoder(handle_unknown='ignore')
 preprocessor = ColumnTransformer(
     transformers=[
         ('num', numerical_transformer, numerical_cols),
-        ('cat', categorical_transformer, categorical_cols)
-    ])
+        ('cat', categorical_transformer, categorical_cols),
+    ]
+)
 
 # Apply the transformations to the features
 X_preprocessed = preprocessor.fit_transform(X)
 
 # Split the dataset
-X_train, X_test, y_train, y_test = train_test_split(X_preprocessed, y, test_size=0.25, random_state=42)
+X_train, X_test, y_train, y_test = train_test_split(
+    X_preprocessed, y, test_size=0.25, random_state=42
+)
 
 # Train the XGBoost model
 clf = XGBClassifier(random_state=42, use_label_encoder=False, eval_metric='logloss')
