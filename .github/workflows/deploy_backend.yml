@@ -74,11 +74,16 @@ jobs:
       - name: "Use gcloud CLI"
         run: "gcloud info"
 
-      - name: Setup Kubectl
-        uses: azure/setup-kubectl@v3
-        with:
-          version: 'v1.28.4'
-        id: install
+      - name: Install GKE Auth
+        run: |
+          export USE_GKE_GCLOUD_AUTH_PLUGIN=True
+          gcloud components install gke-gcloud-auth-plugin
+
+      # - name: Setup Kubectl
+      #   uses: azure/setup-kubectl@v3
+      #   with:
+      #     version: 'v1.28.4'
+      #   id: install
 
       - name: Update kube config
         run: gcloud container clusters get-credentials mlops-final-project --zone us-east4-a --project mlops-final-lab
