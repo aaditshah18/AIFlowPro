@@ -2,7 +2,11 @@ from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 from routers import flight_router
 from fastapi.responses import RedirectResponse
+from utils.gcp_model import download_blob
 import uvicorn
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = FastAPI()
 
@@ -17,6 +21,7 @@ app.add_middleware(
 
 @app.on_event("startup")
 async def startup():
+    download_blob('final-lab-model-bucket', 'models/model.pkl', 'assets/model.pkl')
     app.include_router(flight_router.router)
 
 
