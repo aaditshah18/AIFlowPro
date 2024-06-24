@@ -4,7 +4,7 @@ metadata:
   namespace: mlops
   name: flight-fastapi-app
 spec:
-  replicas: 4
+  replicas: 3
   selector:
     matchLabels:
       app: flight-fastapi-app
