@@ -1,15 +1,13 @@
 import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
 from sklearn.preprocessing import StandardScaler, OneHotEncoder, LabelEncoder
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
-from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
 from xgboost import XGBClassifier
 import warnings
 import pickle
+from google.cloud import storage
 
 warnings.filterwarnings("ignore")
 
@@ -64,5 +62,20 @@ with open('flight_delay_model_xgb.pkl', 'wb') as model_file:
 
 with open('preprocessor.pkl', 'wb') as preprocessor_file:
     pickle.dump(preprocessor, preprocessor_file)
+
+# Upload the files to GCS
+def upload_to_gcs(bucket_name, source_file_name, destination_blob_name):
+    """Uploads a file to the bucket."""
+    storage_client = storage.Client()
+    bucket = storage_client.bucket(bucket_name)
+    blob = bucket.blob(destination_blob_name)
+
+    blob.upload_from_filename(source_file_name)
+
+    print(f"File {source_file_name} uploaded to {destination_blob_name}.")
+
+bucket_name = 'final-lab-model-bucket'
+upload_to_gcs(bucket_name, 'flight_delay_model_xgb.pkl', 'models/flight_delay_model_xgb.pkl')
+upload_to_gcs(bucket_name, 'preprocessorxg.pkl', 'models/preprocessorxg.pkl')
 
 print("Model and preprocessor saved.")

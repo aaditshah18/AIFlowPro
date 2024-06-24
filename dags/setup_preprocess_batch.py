@@ -41,7 +41,7 @@ update_batch_config_task = PythonOperator(
 
 submit_batch_job = BashOperator(
     task_id='submit_batch_job',
-    bash_command=f'gcloud batch jobs submit $(< /tmp/unique_job_name) --location=us-central1 --config=/tmp/batch-template.yml',
+    bash_command='gcloud batch jobs submit $(< /tmp/unique_job_name) --location=us-central1 --config=/tmp/batch-template.yml',
     dag=dag,
 )
 
