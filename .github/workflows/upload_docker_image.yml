@@ -23,5 +23,6 @@ jobs:
       - name: Build and Push Docker Image
         run: |
           gcloud auth configure-docker us-central1-docker.pkg.dev
-          docker build -t us-central1-docker.pkg.dev/mlops-final-lab/ml-model-training/ml-training-image .
-          docker push us-central1-docker.pkg.dev/mlops-final-lab/ml-model-training/ml-training-image
+          IMAGE_TAG=$(uuidgen)
+          docker build -t us-central1-docker.pkg.dev/mlops-final-lab/ml-model-training/ml-training-image:${IMAGE_TAG} .
+          docker push us-central1-docker.pkg.dev/mlops-final-lab/ml-model-training/ml-training-image:${IMAGE_TAG}
