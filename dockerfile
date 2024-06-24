@@ -18,4 +18,4 @@ WORKDIR /app/modeling
 
 
 # Command to run on container start
-CMD ["sh", "-c", "python preprocessing-cleaning.py && python modeling/xgboost-model-v2.py"]
+CMD ["sh", "-c", "python3 preprocessing-cleaning.py"]
