@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field
 from typing import Optional
 
+
 class FlightData(BaseModel):
     FL_DATE: str
     OP_CARRIER: str

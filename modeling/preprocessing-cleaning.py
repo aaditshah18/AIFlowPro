@@ -16,8 +16,12 @@ def main():
     try:
         # Data Loading
         logging.info("Loading data from GCS")
-        df1 = pd.read_csv('gs://us-central1-mlops-composer-c43be234-bucket/data/2015.csv')
-        df2 = pd.read_csv('gs://us-central1-mlops-composer-c43be234-bucket/data/2016.csv')
+        df1 = pd.read_csv(
+            'gs://us-central1-mlops-composer-c43be234-bucket/data/2015.csv'
+        )
+        df2 = pd.read_csv(
+            'gs://us-central1-mlops-composer-c43be234-bucket/data/2016.csv'
+        )
         logging.info("Data loaded successfully")
 
         # Combine the datasets
