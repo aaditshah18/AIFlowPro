@@ -9,7 +9,6 @@ from dags.tasks import (
     create_batch_job,
     get_latest_image_tag,
     send_email,
-    submit_batch_job,
 )
 
 REGION = Variable.get("REGION")

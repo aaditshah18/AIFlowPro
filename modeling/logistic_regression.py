@@ -59,7 +59,7 @@ print("Confusion Matrix:\n", confusion_matrix(y_test, val_preds))
 print("Classification Report:\n", classification_report(y_test, val_preds))
 
 # Save the model and the preprocessor to disk
-with open('flight_delay_model_lr.pkl', 'wb') as model_file:
+with open('model.pkl', 'wb') as model_file:
     pickle.dump(clf, model_file)
 
 with open('preprocessorlr.pkl', 'wb') as preprocessor_file:
@@ -79,9 +79,7 @@ def upload_to_gcs(bucket_name, source_file_name, destination_blob_name):
 
 
 bucket_name = 'final-lab-model-bucket'
-upload_to_gcs(
-    bucket_name, 'flight_delay_model_lr.pkl', 'models/flight_delay_model_lr.pkl'
-)
+upload_to_gcs(bucket_name, 'model.pkl', 'models/model.pkl')
 upload_to_gcs(bucket_name, 'preprocessorlr.pkl', 'models/preprocessorlr.pkl')
 
 print("Model and preprocessor saved")

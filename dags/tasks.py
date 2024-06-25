@@ -74,17 +74,6 @@ def get_latest_image_tag():
     return f"{GCR_IMAGE_PATH}@{latest_tag}"
 
 
-def submit_batch_job(**context):
-    config_path = context['task_instance'].xcom_pull(task_ids='create_batch_job')
-    job_name = context['task_instance'].xcom_pull(task_ids='create_batch_job')
-    command = f"gcloud batch jobs submit {job_name} --location={REGION} --config={config_path}"
-    try:
-        subprocess.run(command, shell=True, check=True)
-    except subprocess.CalledProcessError as e:
-        print(f"Error submitting batch job: {e}")
-        raise
-
-
 def create_batch_job(**context):
     latest_image = context['task_instance'].xcom_pull(task_ids='get_latest_image_tag')
     job_name = f"ml-training-job-{uuid.uuid4()}"
