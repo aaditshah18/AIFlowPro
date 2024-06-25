@@ -1,16 +1,15 @@
 import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
 from sklearn.preprocessing import StandardScaler, OneHotEncoder, LabelEncoder
 from sklearn.compose import ColumnTransformer
-from sklearn.pipeline import Pipeline
-from sklearn.model_selection import train_test_split, GridSearchCV, cross_val_score
+from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
 from sklearn.linear_model import LogisticRegression
 import warnings
+
 warnings.filterwarnings("ignore")
 import pickle
+from google.cloud import storage
+
 # Data Loading
 df = pd.read_csv('cleaned.csv')
 
@@ -33,14 +32,17 @@ categorical_transformer = OneHotEncoder(handle_unknown='ignore')
 preprocessor = ColumnTransformer(
     transformers=[
         ('num', numerical_transformer, numerical_cols),
-        ('cat', categorical_transformer, categorical_cols)
-    ])
+        ('cat', categorical_transformer, categorical_cols),
+    ]
+)
 
 # Apply the transformations to the features
 X_preprocessed = preprocessor.fit_transform(X)
 
 # Split the dataset
-X_train, X_test, y_train, y_test = train_test_split(X_preprocessed, y, test_size=0.25, random_state=42)
+X_train, X_test, y_train, y_test = train_test_split(
+    X_preprocessed, y, test_size=0.25, random_state=42
+)
 
 # Train the Logistic Regression model
 clf = LogisticRegression(max_iter=1000, n_jobs=-1, random_state=42)
@@ -57,10 +59,27 @@ print("Confusion Matrix:\n", confusion_matrix(y_test, val_preds))
 print("Classification Report:\n", classification_report(y_test, val_preds))
 
 # Save the model and the preprocessor to disk
-with open('flight_delay_model_lr.pkl', 'wb') as model_file:
+with open('model.pkl', 'wb') as model_file:
     pickle.dump(clf, model_file)
 
-with open('preprocessor.pkl', 'wb') as preprocessor_file:
+with open('preprocessorlr.pkl', 'wb') as preprocessor_file:
     pickle.dump(preprocessor, preprocessor_file)
 
-print("Model and preprocessor saved.")
+
+# Upload the files to GCS
+def upload_to_gcs(bucket_name, source_file_name, destination_blob_name):
+    """Uploads a file to the bucket."""
+    storage_client = storage.Client()
+    bucket = storage_client.bucket(bucket_name)
+    blob = bucket.blob(destination_blob_name)
+
+    blob.upload_from_filename(source_file_name)
+
+    print(f"File {source_file_name} uploaded to {destination_blob_name}.")
+
+
+bucket_name = 'final-lab-model-bucket'
+upload_to_gcs(bucket_name, 'model.pkl', 'models/model.pkl')
+upload_to_gcs(bucket_name, 'preprocessorlr.pkl', 'models/preprocessorlr.pkl')
+
+print("Model and preprocessor saved")
