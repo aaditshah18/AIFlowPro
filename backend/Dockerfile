@@ -2,6 +2,9 @@ FROM python:3.9
 
 WORKDIR /backend
 
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends libomp-dev
+    
 COPY . .
 
 RUN pip install --no-cache-dir -r /backend/requirements.txt

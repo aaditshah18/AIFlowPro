@@ -30,8 +30,8 @@ def start_subscriber_loop():
 @app.on_event("startup")
 async def startup():
     print("Starting up application...")
-    await download_blob('final-lab-model-bucket', 'models/model.pkl', 'assets/model.pkl')
-    await download_blob('final-lab-model-bucket', 'models/preprocessorlr.pkl', 'assets/preprocessor.pkl')
+    download_blob('final-lab-model-bucket', 'models/model.pkl', 'assets/model.pkl')
+    download_blob('final-lab-model-bucket', 'models/preprocessorlr.pkl', 'assets/preprocessor.pkl')
     thread = threading.Thread(target=start_subscriber_loop)
     thread.start()
     app.include_router(flight_router.router)

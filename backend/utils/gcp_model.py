@@ -6,7 +6,7 @@ import os
 
 load_dotenv()
 
-async def download_blob(bucket_name, source_blob_name, destination_file_name):
+def download_blob(bucket_name, source_blob_name, destination_file_name):
     try:
         credentials_dict = json.loads(os.environ.get('SERVICE_ACCOUNT_JSON'))
         credentials = service_account.Credentials.from_service_account_info(credentials_dict)
