@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Query, BackgroundTasks
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from routers import flight_router
 from fastapi.responses import RedirectResponse
@@ -29,8 +29,9 @@ def start_subscriber_loop():
 
 @app.on_event("startup")
 async def startup():
-    download_blob('final-lab-model-bucket', 'models/model.pkl', 'backend/assets/model.pkl')
-    download_blob('final-lab-model-bucket', 'models/preprocessorlr.pkl', 'backend/assets/preprocessor.pkl')
+    print("Starting up application...")
+    await download_blob('final-lab-model-bucket', 'models/model.pkl', 'assets/model.pkl')
+    await download_blob('final-lab-model-bucket', 'models/preprocessorlr.pkl', 'assets/preprocessor.pkl')
     thread = threading.Thread(target=start_subscriber_loop)
     thread.start()
     app.include_router(flight_router.router)
@@ -38,8 +39,16 @@ async def startup():
 @app.on_event("shutdown")
 async def shutdown_event():
     print("Application is shutting down...")
-    os.remove('backend/assets/model.pkl')
-    os.remove('backend/assets/preprocessor.pkl')
+    files_to_remove = ['backend/assets/model.pkl', 'backend/assets/preprocessor.pkl']
+    for file in files_to_remove:
+        if os.path.exists(file):
+            os.remove(file)
+            print(f"File {file} removed successfully.")
+        else:
+            print(f"File {file} does not exist.")
+
+    # os.remove('backend/assets/model.pkl')
+    # os.remove('backend/assets/preprocessor.pkl')
 
 @app.get("/", include_in_schema=False)
 def docs_redirect():

@@ -21,10 +21,10 @@ def get_flight_delays(request: FlightData):
 
     try:
         
-        with open('backend/assets/preprocessor.pkl', 'rb') as preprocessor_file:
+        with open('assets/preprocessor.pkl', 'rb') as preprocessor_file:
             preprocessor = pickle.load(preprocessor_file)
 
-        with open('backend/assets/model.pkl', 'rb') as model_file:
+        with open('assets/model.pkl', 'rb') as model_file:
             model = pickle.load(model_file)
 
         input_data = pd.DataFrame([request.dict()])
