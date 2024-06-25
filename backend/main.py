@@ -39,7 +39,7 @@ async def startup():
 @app.on_event("shutdown")
 async def shutdown_event():
     print("Application is shutting down...")
-    files_to_remove = ['backend/assets/model.pkl', 'backend/assets/preprocessor.pkl']
+    files_to_remove = ['assets/model.pkl', 'assets/preprocessor.pkl']
     for file in files_to_remove:
         if os.path.exists(file):
             os.remove(file)
