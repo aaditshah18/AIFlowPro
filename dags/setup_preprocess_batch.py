@@ -4,7 +4,8 @@ from airflow.operators.bash import BashOperator
 from airflow.operators.dummy import DummyOperator
 from airflow.utils.dates import days_ago
 from airflow.models import Variable
-from dags.custom_operators import ExtendedBatchJobSensor
+from airflow.providers.google.cloud.sensors.gcs import GCSObjectExistenceSensor
+
 from dags.tasks import (
     create_batch_job,
     get_latest_image_tag,
@@ -43,13 +44,12 @@ create_batch_job_task = PythonOperator(
     dag=dag,
 )
 
-monitor_batch_job_task = ExtendedBatchJobSensor(
-    task_id='monitor_batch_job',
-    job_name="{{ task_instance.xcom_pull(task_ids='create_batch_job', key='job_name') }}",
-    project_id=PROJECT_ID,
-    location=REGION,
-    timeout=600,  # Increase timeout as needed
-    retries=3,  # Increase retries as needed
+monitor_gcs_file_task = GCSObjectExistenceSensor(
+    task_id='monitor_gcs_file',
+    bucket=MODEL_BUCKET_NAME,
+    object='models/model.pkl',
+    timeout=1200,  # 20 minutes
+    poke_interval=60,  # Check every minute
     dag=dag,
 )
 
