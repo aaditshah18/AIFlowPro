@@ -1,25 +1,36 @@
-from airflow.sensors.base_sensor_operator import BaseSensorOperator
-from google.api_core.client_options import ClientOptions
+from airflow.sensors.base import BaseSensorOperator
 from google.cloud import batch_v1
-from airflow.models import Variable
-
-PROJECT_ID = Variable.get("PROJECT_ID")
-REGION = Variable.get("REGION")
+from google.api_core.exceptions import GoogleAPICallError, RetryError
+import time
 
 
-class BatchJobSensor(BaseSensorOperator):
+class ExtendedBatchJobSensor(BaseSensorOperator):
+    def __init__(self, job_name, project_id, location, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.job_name = job_name
+        self.project_id = project_id
+        self.location = location
+
     def poke(self, context):
-        client_options = ClientOptions(api_endpoint="https://batch.googleapis.com/")
-        client = batch_v1.BatchServiceClient(client_options=client_options)
-        job_name = f"projects/{PROJECT_ID}/locations/{REGION}/jobs/ml-training-job"
+        client = batch_v1.BatchServiceClient()
+        job_name = (
+            f"projects/{self.project_id}/locations/{self.location}/jobs/{self.job_name}"
+        )
 
-        job = client.get_job(name=job_name)
-
-        state = job.status.state
-        if state in [
-            batch_v1.JobStatus.State.SUCCEEDED,
-            batch_v1.JobStatus.State.FAILED,
-            batch_v1.JobStatus.State.DELETION_IN_PROGRESS,
-        ]:
-            return True
-        return False
+        try:
+            job = client.get_job(name=job_name)
+            self.log.info(f"Job status: {job.status.state}")
+            if job.status.state == batch_v1.JobStatus.State.SUCCEEDED:
+                return True
+            elif job.status.state in (
+                batch_v1.JobStatus.State.FAILED,
+                batch_v1.JobStatus.State.DELETION_IN_PROGRESS,
+            ):
+                raise ValueError(
+                    f"Batch job {self.job_name} failed or is being deleted."
+                )
+            return False
+        except (GoogleAPICallError, RetryError) as e:
+            self.log.error(f"Error occurred while checking job status: {e}")
+            time.sleep(30)  # Adding a delay before retrying
+            return False

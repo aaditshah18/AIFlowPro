@@ -1,6 +1,7 @@
 import smtplib
 from email.mime.text import MIMEText
 import logging
+import uuid
 from airflow.models import Variable
 import json
 import subprocess
@@ -67,7 +68,7 @@ def train_model(**kwargs):
 
 
 def get_latest_image_tag():
-    command = f"gcloud container images list-tags {GCR_IMAGE_PATH} --limit=1 --sort-by=TIMESTAMP --format='get(digest)'"
+    command = f"gcloud container images list-tags {GCR_IMAGE_PATH} --limit=1 --sort-by=~TIMESTAMP --format='get(digest)'"
     result = subprocess.run(command, shell=True, capture_output=True, text=True)
     latest_tag = result.stdout.strip()
     return f"{GCR_IMAGE_PATH}@{latest_tag}"
@@ -75,13 +76,18 @@ def get_latest_image_tag():
 
 def submit_batch_job(**context):
     config_path = context['task_instance'].xcom_pull(task_ids='create_batch_job')
-    command = f"gcloud batch jobs submit ml-training-job --location={REGION} --config={config_path}"
-    subprocess.run(command, shell=True, check=True)
+    job_name = context['task_instance'].xcom_pull(task_ids='create_batch_job')
+    command = f"gcloud batch jobs submit {job_name} --location={REGION} --config={config_path}"
+    try:
+        subprocess.run(command, shell=True, check=True)
+    except subprocess.CalledProcessError as e:
+        print(f"Error submitting batch job: {e}")
+        raise
 
 
 def create_batch_job(**context):
     latest_image = context['task_instance'].xcom_pull(task_ids='get_latest_image_tag')
-    job_name = 'ml-training-job'
+    job_name = f"ml-training-job-{uuid.uuid4()}"
 
     job_config = {
         "name": f"projects/{PROJECT_ID}/locations/{REGION}/jobs/{job_name}",
@@ -118,7 +124,14 @@ def create_batch_job(**context):
     }
 
     config_path = '/tmp/batch-job-config.json'
-    with open(config_path, 'w') as config_file:
-        json.dump(job_config, config_file)
+    try:
+        with open(config_path, 'w') as config_file:
+            json.dump(job_config, config_file)
+    except Exception as e:
+        print(f"Error creating batch job config file: {e}")
+        raise
+
+    context['task_instance'].xcom_push(key='config_path', value=config_path.strip())
+    context['task_instance'].xcom_push(key='job_name', value=job_name.strip())
 
     return config_path
