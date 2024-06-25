@@ -17,6 +17,9 @@ spec:
           - name: flight-prediction-api
             image: us-east4-docker.pkg.dev/mlops-final-lab/backend-fastapi-app/fast-api-app
             imagePullPolicy: Always
+            envFrom:
+            - configMapRef:
+                name: flight-fastapi-env
             ports:
               - containerPort: 8080
             resources:
