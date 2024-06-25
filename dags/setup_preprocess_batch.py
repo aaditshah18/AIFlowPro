@@ -103,7 +103,7 @@ Task Definitions:
 1. get_latest_image_tag_task: Retrieves the latest Docker image tag for the batch job.
 2. create_batch_job_task: Creates the configuration for the Google Batch job.
 3. submit_batch_job_task: Submits the batch job to Google Cloud Batch for execution.
-4. monitor_batch_job_task: Monitors the batch job until it completes successfully or fails.
+4. monitor_gcs_file_task: Monitors the batch job until it completes successfully or fails.
 5. delete_batch_job_task: Deletes the batch job configuration after monitoring is complete, whether successful or not. It is dependent on the completion of monitor_batch_job_task.
 6. end_task: A dummy task that signifies the end of the primary workflow. Both deploy_model and monitor_batch_job_task converge here.
 7. send_success_email: Sends a success email notification. It is triggered if the end_task completes successfully.
@@ -111,8 +111,8 @@ Task Definitions:
 
 Dependencies:
 - get_latest_image_tag_task >> create_batch_job_task >> submit_batch_job_task >> monitor_batch_job_task
-- monitor_batch_job_task >> delete_batch_job_task
-- monitor_batch_job_task >> end_task
+- monitor_gcs_file_task >> delete_batch_job_task
+- monitor_gcs_file_task >> end_task
 - end_task >> send_success_email
 - end_task >> send_failure_email
 """
@@ -122,9 +122,9 @@ Dependencies:
     get_latest_image_tag_task
     >> create_batch_job_task
     >> submit_batch_job_task
-    >> monitor_batch_job_task
+    >> monitor_gcs_file_task
 )
-monitor_batch_job_task >> delete_batch_job_task
-monitor_batch_job_task >> end_task
+monitor_gcs_file_task >> delete_batch_job_task
+monitor_gcs_file_task >> end_task
 end_task >> send_success_email
 end_task >> send_failure_email
