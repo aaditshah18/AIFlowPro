@@ -47,7 +47,6 @@ def main():
         logging.info("Data loaded successfully")
 
         # Combine the datasets
-        df = pd.concat([df1, df2], ignore_index=True)
         logging.info("Data combined successfully")
 
         # Renaming Airlines
