@@ -3,3 +3,6 @@ fastapi==0.92.0
 uvicorn
 google-cloud-storage
 google-cloud-pubsub
+pandas
+numpy
+scikit-learn
