@@ -5,4 +5,4 @@ google-cloud-storage
 google-cloud-pubsub
 pandas
 numpy
-scikit-learn
+scikit-learn==1.5.0
