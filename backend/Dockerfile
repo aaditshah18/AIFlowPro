@@ -1,10 +1,10 @@
 FROM python:3.10
 
-WORKDIR /code
+WORKDIR /backend
 
 COPY . .
 
-RUN pip install --no-cache-dir -r /code/requirements.txt
+RUN pip install --no-cache-dir -r /backend/requirements.txt
 
 EXPOSE 8080
 
