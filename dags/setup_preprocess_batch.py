@@ -24,7 +24,7 @@ default_args = {
 }
 
 dag = DAG(
-    'batch_job_vertex_deployment',
+    'batch_job_deployment',
     default_args=default_args,
     description='A DAG to create, run, and delete a Google Batch job',
     schedule_interval=None,  # Change as required
